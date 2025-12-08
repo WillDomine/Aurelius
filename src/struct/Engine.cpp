@@ -14,7 +14,7 @@ void Engine::initWindow() {
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    window = glfwCreateWindow(WIDTH, HEIGHT, "Engine", nullptr, nullptr);
+    window = glfwCreateWindow(WIDTH, HEIGHT, "AURELIUS ENGINE", nullptr, nullptr);
 }
 
 void Engine::initVulkan() {
@@ -43,6 +43,18 @@ void Engine::initVulkan() {
     if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create window surface!");
     }
+}
+
+void Engine::pickPhysicalDevice() {
+
+}
+
+void Engine::createLogicalDevice() {
+
+}
+
+bool Engine::isDeviceSuitable() {
+    return false;
 }
 
 void Engine::mainLoop() {

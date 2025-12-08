@@ -1,7 +1,7 @@
-prefix=C:/Program Files (x86)/AURELIUS
+prefix=C:/Program Files/AURELIUS
 exec_prefix=${prefix}
-includedir=C:/Program Files (x86)/AURELIUS/include
-libdir=C:/Program Files (x86)/AURELIUS/lib
+includedir=C:/Program Files/AURELIUS/include
+libdir=C:/Program Files/AURELIUS/lib
 
 Name: GLFW
 Description: A multi-platform library for OpenGL, window and input

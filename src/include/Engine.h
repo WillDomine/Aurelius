@@ -1,5 +1,5 @@
-#ifndef PLUTRON_ENGINE_H
-#define PLUTRON_ENGINE_H
+#ifndef AURELIUS_ENGINE_H
+#define AURELIUS_ENGINE_H
 #include <vulkan/vulkan_core.h>
 
 #include "GLFW/glfw3.h"
