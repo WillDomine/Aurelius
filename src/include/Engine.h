@@ -18,7 +18,7 @@ private:
     //Pick the driver for translation
     void createLogicalDevice();
     //Check if this device is suitable
-    bool isDeviceSuitable();
+    bool isDeviceSuitable(VkPhysicalDevice device);
     //Main game engine loop
     void mainLoop();
     //Clean up the game engine
@@ -28,7 +28,7 @@ private:
     GLFWwindow* window;
     VkSurfaceKHR surface;
     VkInstance instance;
-    VkPhysicalDevice physicalDevice;
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
     VkQueue qraphicsQueue;
 
