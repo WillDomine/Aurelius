@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\willd\Documents\Github\Aurelius\build\CMakeFiles\ef4c649fa1c3e45352fd6d611ddfc4b4\update_mappings.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\willd\Documents\Github\Aurelius\build\_deps\glfw-src\src\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\willd\Documents\Github\Aurelius\build\_deps\glfw-src\src\mappings.h.in">
+      <Filter>Header Files</Filter>
+    </None>
+    <None Include="C:\Users\willd\Documents\Github\Aurelius\build\_deps\glfw-src\CMake\GenerateMappings.cmake" />
+    <None Include="C:\Users\willd\Documents\Github\Aurelius\build\_deps\glfw-build\src\CMakeFiles\update_mappings" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{D9EAAE2C-B657-348E-8278-D0F34A3B96AC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{71ED628F-ADFA-39EC-BD3B-6447CF16A695}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

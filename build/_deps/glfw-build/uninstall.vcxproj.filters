@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\willd\Documents\Github\Aurelius\build\CMakeFiles\78f8a19c51d6176fb4622e2b27635294\uninstall.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\willd\Documents\Github\Aurelius\build\_deps\glfw-src\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\willd\Documents\Github\Aurelius\build\_deps\glfw-build\CMakeFiles\uninstall" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{D9EAAE2C-B657-348E-8278-D0F34A3B96AC}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

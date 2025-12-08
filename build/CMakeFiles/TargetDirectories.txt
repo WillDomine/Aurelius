@@ -1,0 +1,10 @@
+C:/Users/willd/Documents/Github/Aurelius/build/CMakeFiles/AURELIUS.dir
+C:/Users/willd/Documents/Github/Aurelius/build/CMakeFiles/INSTALL.dir
+C:/Users/willd/Documents/Github/Aurelius/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/willd/Documents/Github/Aurelius/build/CMakeFiles/ZERO_CHECK.dir
+C:/Users/willd/Documents/Github/Aurelius/build/_deps/glfw-build/CMakeFiles/uninstall.dir
+C:/Users/willd/Documents/Github/Aurelius/build/_deps/glfw-build/CMakeFiles/INSTALL.dir
+C:/Users/willd/Documents/Github/Aurelius/build/_deps/glfw-build/CMakeFiles/ALL_BUILD.dir
+C:/Users/willd/Documents/Github/Aurelius/build/_deps/glfw-build/src/CMakeFiles/update_mappings.dir
+C:/Users/willd/Documents/Github/Aurelius/build/_deps/glfw-build/src/CMakeFiles/glfw.dir
+C:/Users/willd/Documents/Github/Aurelius/build/_deps/glfw-build/src/CMakeFiles/INSTALL.dir

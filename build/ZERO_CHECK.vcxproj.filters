@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\willd\Documents\Github\Aurelius\build\CMakeFiles\043750d38ed8b63d3dd1b3d7555f4d01\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{D9EAAE2C-B657-348E-8278-D0F34A3B96AC}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
