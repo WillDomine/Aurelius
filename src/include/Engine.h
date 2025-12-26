@@ -7,10 +7,18 @@
 #include "GLFW/glfw3.h"
 
 struct QueueFamilyIndices {
+    //Graphics (calcs the pixels)
     std::optional<uint32_t> graphicsFamily;
+    //Present (moves rendered frame to monitor)
     std::optional<uint32_t> presentFamily;
+    //Computes complex (calcs will be used for physics)
+    std::optional<uint32_t> computeFamily; 
+    //Transfer (Used for moving data from staging buffer)
+    std::optional<uint32_t> transferFamily; 
+
     bool isComplete() {
-        return graphicsFamily.has_value() && presentFamily.has_value();
+        return graphicsFamily.has_value() && presentFamily.has_value() && 
+               computeFamily.has_value() && transferFamily.has_value();
     }
 };
 
@@ -26,6 +34,8 @@ public:
 private:
     //Window Creation
     void initWindow();
+    //Get Vulkan API Version
+    uint32_t getSupportedInstanceVersion();
     //Vulkan Layer Creation
     void initVulkan();
     //Pick Graphical Device (aka GPU)
@@ -45,18 +55,25 @@ private:
     //Clean up the game engine
     void cleanup();
 
-
+    //Core Window
     GLFWwindow* window;
     VkSurfaceKHR surface;
     VkInstance instance;
+    //Hardware
     VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     VkDevice device;
-    VkQueue qraphicsQueue;
+    //Queues the parallel lanes
+    VkQueue graphicsQueue;
     VkQueue presentQueue;
+    VkQueue computeQueue;
+    VkQueue transferQueue;
+    //Swap Chain
 
+
+    //Window size (for testing) full-screen integration later
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
 };
 
 
-#endif //PLUTRON_ENGINE_H
+#endif
