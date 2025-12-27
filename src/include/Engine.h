@@ -77,6 +77,10 @@ private:
     void createCommandBuffers();
     //writes to the command buffers
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    //Create the sync object
+    void createSyncObjects();
+    //Draws to the frame
+    void drawFrame();
     //Main game engine loop
     void mainLoop();
     //Clean up the game engine
@@ -108,6 +112,11 @@ private:
     //Command Pool and Buffers
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
+    //Sync
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
+    uint32_t currentFrame = 0;
 
     //Window size (for testing) full-screen integration later
     const uint32_t WIDTH = 800;
