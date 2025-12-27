@@ -69,6 +69,14 @@ private:
     static std::vector<char> readFile(const std::string &filename);
     //Wrap shader code to module
     VkShaderModule createShaderModule(const std::vector<char> &code);
+    //Create the frame buffers for swap chain (connection between render pass and images)
+    void createFrameBuffers();
+    //create the command pool
+    void createCommandPool();
+    //create command buffers
+    void createCommandBuffers();
+    //writes to the command buffers
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     //Main game engine loop
     void mainLoop();
     //Clean up the game engine
@@ -88,6 +96,7 @@ private:
     VkQueue transferQueue;
     //Swap Chain
     VkSwapchainKHR swapChain;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
     std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
@@ -96,10 +105,16 @@ private:
     VkRenderPass renderPass;
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
+    //Command Pool and Buffers
+    VkCommandPool commandPool;
+    std::vector<VkCommandBuffer> commandBuffers;
 
     //Window size (for testing) full-screen integration later
     const uint32_t WIDTH = 800;
     const uint32_t HEIGHT = 600;
+
+    //Logic cpu prep for triple buffer
+    const int MAX_FRAMES_AHEAD = 2;
 };
 
 
