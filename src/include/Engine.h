@@ -50,6 +50,16 @@ private:
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
     //Swap Chain Support Details
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    //Get surface aka color view
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &avaliableFormats);
+    //Get the present mode ideally Mailbox
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &avaliablePresentModes);
+    //Set the screen size for swap chain have to destory if this changes.
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabiltes);
+    //create Image Views
+    void createImageViews();
+    //Create swapchain
+    void createSwapChain();
     //Main game engine loop
     void mainLoop();
     //Clean up the game engine
@@ -68,7 +78,11 @@ private:
     VkQueue computeQueue;
     VkQueue transferQueue;
     //Swap Chain
-
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+    std::vector<VkImageView> swapChainImageViews;
 
     //Window size (for testing) full-screen integration later
     const uint32_t WIDTH = 800;
