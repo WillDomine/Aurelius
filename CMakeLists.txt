@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.20) # Adjusted slightly for stable FetchContent support
 project(AURELIUS)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -27,3 +27,10 @@ add_executable(AURELIUS src/main.cpp src/struct/Engine.cpp)
 
 target_link_libraries(AURELIUS PRIVATE Vulkan::Vulkan glfw)
 target_include_directories(AURELIUS PRIVATE ${Vulkan_INCLUDE_DIRS})
+
+add_custom_command(TARGET AURELIUS POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/src/shaders"
+    "$<TARGET_FILE_DIR:AURELIUS>/shaders"
+    COMMENT "Copying shaders to executable directory..."
+)

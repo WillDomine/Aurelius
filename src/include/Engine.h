@@ -3,6 +3,7 @@
 #define AURELIUS_ENGINE_H
 #include <vulkan/vulkan_core.h>
 #include <optional>
+#include <string>
 #include <vector>
 #include "GLFW/glfw3.h"
 
@@ -60,6 +61,14 @@ private:
     void createImageViews();
     //Create swapchain
     void createSwapChain();
+    //Create the render pass
+    void createRenderPass();
+    //Creat the graphics pipeline
+    void createGraphicsPipeline();
+    //read binary files
+    static std::vector<char> readFile(const std::string &filename);
+    //Wrap shader code to module
+    VkShaderModule createShaderModule(const std::vector<char> &code);
     //Main game engine loop
     void mainLoop();
     //Clean up the game engine
@@ -83,6 +92,10 @@ private:
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
+    //Pipeline and Render Pass
+    VkRenderPass renderPass;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline graphicsPipeline;
 
     //Window size (for testing) full-screen integration later
     const uint32_t WIDTH = 800;
