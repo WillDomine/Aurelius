@@ -23,7 +23,15 @@ include_directories(${glfw_SOURCE_DIR}/include)
 
 find_package(Vulkan REQUIRED)
 
-add_executable(AURELIUS src/main.cpp src/lib/Engine.cpp)
+add_executable(AURELIUS 
+    src/main.cpp
+    src/lib/Engine.cpp
+    src/lib/WindowService.cpp
+    src/lib/DeviceService.cpp
+    src/lib/SwapChainService.cpp
+    src/lib/PipelineService.cpp
+    src/lib/CommandService.cpp
+)
 
 target_link_libraries(AURELIUS PRIVATE Vulkan::Vulkan glfw)
 target_include_directories(AURELIUS PRIVATE ${Vulkan_INCLUDE_DIRS})

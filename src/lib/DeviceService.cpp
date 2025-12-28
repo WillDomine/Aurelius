@@ -114,6 +114,7 @@ void DeviceService::createLogicalDevice() {
     vkGetDeviceQueue(device_, indices.presentFamily.value(), 0, &presentQueue_);
     vkGetDeviceQueue(device_, indices.computeFamily.value(), 0, &computeQueue_);
     vkGetDeviceQueue(device_, indices.transferFamily.value(), 0, &transferQueue_);
+
 }
 
 void DeviceService::createCommandPool() {
