@@ -48,6 +48,8 @@ class DeviceService {
         VkCommandBuffer beginSingleTimeCommands();
         void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
+        void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
     private:
         void createInstance();
         void pickPhysicalDevice();
@@ -63,6 +65,7 @@ class DeviceService {
         VkPhysicalDevice physicalDevice_ = VK_NULL_HANDLE;
         WindowService& windowService;
         VkCommandPool commandPool;
+        VkCommandPool transferCommandPool;
 
         VkDevice device_;
         VkSurfaceKHR surface_;

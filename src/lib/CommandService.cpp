@@ -2,8 +2,8 @@
 #include <stdexcept>
 #include <iostream>
 
-CommandService::CommandService(DeviceService& device, SwapChainService& swapChain, PipelineService& pipeline)
-    : deviceService(device), swapChainService(swapChain), pipelineService(pipeline) {
+CommandService::CommandService(DeviceService& device, SwapChainService& swapChain, PipelineService& pipeline, BufferService& buffer)
+    : deviceService(device), swapChainService(swapChain), pipelineService(pipeline), bufferService(buffer)  {
     
     createCommandBuffers();
     createSyncObjects();
@@ -79,6 +79,12 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineService.getPipeline());
 
+        VkBuffer vertexBuffers[] = {bufferService.getVertexBuffer()};
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+        vkCmdBindIndexBuffer(commandBuffer, bufferService.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
+
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -93,7 +99,7 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
         scissor.extent = swapChainService.getSwapChainExtent();
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0); 
 
     vkCmdEndRenderPass(commandBuffer);
 

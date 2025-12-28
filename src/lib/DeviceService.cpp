@@ -16,6 +16,7 @@ DeviceService::DeviceService(WindowService& window) : windowService(window) {
 }
 
 DeviceService::~DeviceService() {
+    vkDestroyCommandPool(device_, transferCommandPool, nullptr);
     vkDestroyCommandPool(device_, commandPool, nullptr);
     vkDestroyDevice(device_, nullptr);
     vkDestroySurfaceKHR(instance, surface_, nullptr);
@@ -120,13 +121,25 @@ void DeviceService::createLogicalDevice() {
 void DeviceService::createCommandPool() {
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice_);
 
+    // 1. Graphics Pool
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
     if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create command pool!");
+        throw std::runtime_error("Failed to create graphics command pool!");
+    }
+
+    // 2. Transfer Pool
+    VkCommandPoolCreateInfo transferPoolInfo{};
+    transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    // Transient means "we will record and reset this very often" (optimized for short-lived commands)
+    transferPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT; 
+    transferPoolInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
+
+    if (vkCreateCommandPool(device_, &transferPoolInfo, nullptr, &transferCommandPool) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create transfer command pool!");
     }
 }
 
@@ -287,4 +300,131 @@ void DeviceService::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
     vkQueueWaitIdle(graphicsQueue_);
 
     vkFreeCommandBuffers(device_, commandPool, 1, &commandBuffer);
+}
+
+void DeviceService::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+    QueueFamilyIndices indices = findQueueFamilies(physicalDevice_);
+    uint32_t graphicsFamily = indices.graphicsFamily.value();
+    uint32_t transferFamily = indices.transferFamily.value();
+
+    // --- STEP 1: The Transfer Command (Release) ---
+    
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = transferCommandPool; 
+    allocInfo.commandBufferCount = 1;
+
+    VkCommandBuffer commandBuffer;
+    vkAllocateCommandBuffers(device_, &allocInfo, &commandBuffer);
+
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(commandBuffer, &beginInfo);
+
+    // 1. Perform the Copy
+    VkBufferCopy copyRegion{};
+    copyRegion.size = size;
+    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+    // 2. Setup Barrier (Logic depends on if queues are shared or distinct)
+    VkBufferMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.size = size;
+    barrier.buffer = dstBuffer;
+    barrier.offset = 0;
+
+    if (graphicsFamily != transferFamily) {
+        // CASE A: Separate Queues (Ownership Transfer - RELEASE)
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = 0; // Ignored during release
+        barrier.srcQueueFamilyIndex = transferFamily;
+        barrier.dstQueueFamilyIndex = graphicsFamily; // Giving it to Graphics
+
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+            0,
+            0, nullptr,
+            1, &barrier,
+            0, nullptr
+        );
+    } else {
+        // CASE B: Same Queue (Just a Visibility Barrier)
+        // Even if queues are same, we must ensure Write completes before Read
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED; // No ownership change
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+        vkCmdPipelineBarrier(
+            commandBuffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+            0,
+            0, nullptr,
+            1, &barrier,
+            0, nullptr
+        );
+    }
+
+    vkEndCommandBuffer(commandBuffer);
+
+    // Submit to Transfer Queue
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &commandBuffer;
+
+    vkQueueSubmit(transferQueue_, 1, &submitInfo, VK_NULL_HANDLE);
+    vkQueueWaitIdle(transferQueue_);
+    vkFreeCommandBuffers(device_, transferCommandPool, 1, &commandBuffer);
+
+    // --- STEP 2: The Graphics Command (Acquire) - ONLY if queues are different ---
+    
+    if (graphicsFamily != transferFamily) {
+        VkCommandBufferAllocateInfo allocInfoGraphics{};
+        allocInfoGraphics.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfoGraphics.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfoGraphics.commandPool = commandPool; // Use Graphics Pool
+        allocInfoGraphics.commandBufferCount = 1;
+
+        VkCommandBuffer graphicsCmd;
+        vkAllocateCommandBuffers(device_, &allocInfoGraphics, &graphicsCmd);
+
+        VkCommandBufferBeginInfo beginInfoGraphics{};
+        beginInfoGraphics.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        beginInfoGraphics.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        vkBeginCommandBuffer(graphicsCmd, &beginInfoGraphics);
+
+        // Reuse barrier struct, just update masks for ACQUIRE
+        barrier.srcAccessMask = 0; // Ignored during acquire
+        barrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+        barrier.srcQueueFamilyIndex = transferFamily;
+        barrier.dstQueueFamilyIndex = graphicsFamily;
+
+        vkCmdPipelineBarrier(
+            graphicsCmd,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, // Wait at the very start
+            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+            0,
+            0, nullptr,
+            1, &barrier,
+            0, nullptr
+        );
+
+        vkEndCommandBuffer(graphicsCmd);
+
+        VkSubmitInfo submitInfoGraphics{};
+        submitInfoGraphics.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfoGraphics.commandBufferCount = 1;
+        submitInfoGraphics.pCommandBuffers = &graphicsCmd;
+
+        vkQueueSubmit(graphicsQueue_, 1, &submitInfoGraphics, VK_NULL_HANDLE);
+        vkQueueWaitIdle(graphicsQueue_);
+        vkFreeCommandBuffers(device_, commandPool, 1, &graphicsCmd);
+    }
 }

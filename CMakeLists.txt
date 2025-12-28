@@ -31,6 +31,7 @@ add_executable(AURELIUS
     src/lib/SwapChainService.cpp
     src/lib/PipelineService.cpp
     src/lib/CommandService.cpp
+    src/lib/BufferService.cpp
 )
 
 target_link_libraries(AURELIUS PRIVATE Vulkan::Vulkan glfw)

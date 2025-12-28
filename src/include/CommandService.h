@@ -2,12 +2,13 @@
 #include "DeviceService.h"
 #include "SwapChainService.h"
 #include "PipelineService.h"
+#include "BufferService.h"
 #include <vulkan/vulkan.h>
 #include <vector>
 
 class CommandService {
 public:
-    CommandService(DeviceService& device, SwapChainService& swapChain, PipelineService& pipeline);
+    CommandService(DeviceService& device, SwapChainService& swapChain, PipelineService& pipeline, BufferService& buffer);
     ~CommandService();
 
     CommandService(const CommandService&) = delete;
@@ -23,6 +24,7 @@ private:
     DeviceService& deviceService;
     SwapChainService& swapChainService;
     PipelineService& pipelineService;
+    BufferService& bufferService;
 
     std::vector<VkCommandBuffer> commandBuffers;
     
