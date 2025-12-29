@@ -24,9 +24,20 @@ public:
     void recreateSwapChain();
     void cleanupSwapChain();
 
+    void createDepthResources();
+    VkFormat findDepthFormat();
+
+    VkImageView getDepthImageView() { return depthImageView; }
+
 private:
     void createSwapChain();
     void createImageViews();
+
+    VkImage depthImage;
+    VmaAllocation depthImageAllocation;
+    VkImageView depthImageView;
+
+    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage, VkImage& image, VmaAllocation& allocation);
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
     VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);

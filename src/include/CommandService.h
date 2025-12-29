@@ -14,12 +14,16 @@ public:
     CommandService(const CommandService&) = delete;
     CommandService& operator=(const CommandService&) = delete;
 
-    VkResult drawFrame(const Mesh& mesh);
+    const int MAX_FRAMES_IN_FLIGHT = 2;
+
+    uint32_t currentFrame = 0;
+
+    VkResult drawFrame(const Mesh& mesh, VkDescriptorSet descriptorSet);
 
 private:
     void createCommandBuffers();
     void createSyncObjects();
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh& mesh);
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh& mesh, VkDescriptorSet descriptorSet);
 
     DeviceService& deviceService;
     SwapChainService& swapChainService;
@@ -32,6 +36,4 @@ private:
     std::vector<VkSemaphore> renderFinishedSemaphores;
     std::vector<VkFence> inFlightFences;
 
-    const int MAX_FRAMES_IN_FLIGHT = 2;
-    uint32_t currentFrame = 0;
 };

@@ -19,7 +19,19 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(glfw)
 
+include(FetchContent)
+FetchContent_Declare(
+    glm
+    GIT_REPOSITORY https://github.com/g-truc/glm
+    GIT_TAG 1.0.2
+)
+set(GLM_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+set(GLM_BUILD TESTS OFF CACHE BOOL "" FORCE)
+set(GLM_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(glm)
+
 include_directories(${glfw_SOURCE_DIR}/include)
+include_directories(${glm_SOURCE_DIR}/include)
 
 find_package(Vulkan REQUIRED)
 

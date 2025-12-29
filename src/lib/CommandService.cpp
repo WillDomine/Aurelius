@@ -63,7 +63,7 @@ void CommandService::createSyncObjects()
     }
 }
 
-void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh& mesh) {
+void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh& mesh, VkDescriptorSet descriptorSet) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -78,22 +78,17 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapChainService.getSwapChainExtent();
 
-    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
+    std::array<VkClearValue, 2> clearValues{};
+    clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clearValues[1].depthStencil = {1.0f, 0}; // Clear depth to 1.0 (farthest)
+
+    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineService.getPipeline());
 
-        VkBuffer vertexBuffers[] = {mesh.vertexBuffer}; 
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
-        vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
-
-        vkCmdDrawIndexed(commandBuffer, mesh.indexCount, 1, 0, 0, 0); 
- 
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -107,6 +102,17 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
         scissor.offset = {0, 0};
         scissor.extent = swapChainService.getSwapChainExtent();
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+        // -----------------------------------------------------------------
+
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineService.getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+
+        VkBuffer vertexBuffers[] = {mesh.vertexBuffer}; 
+        VkDeviceSize offsets[] = {0};
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+        vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+        vkCmdDrawIndexed(commandBuffer, mesh.indexCount, 1, 0, 0, 0); 
 
     vkCmdEndRenderPass(commandBuffer);
 
@@ -115,7 +121,7 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
     }
 }
 
-VkResult CommandService::drawFrame(const Mesh& mesh) {
+VkResult CommandService::drawFrame(const Mesh& mesh, VkDescriptorSet descriptorSet) {
     vkWaitForFences(deviceService.device(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -135,7 +141,7 @@ VkResult CommandService::drawFrame(const Mesh& mesh) {
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
     
-    recordCommandBuffer(commandBuffers[currentFrame], imageIndex, mesh);
+    recordCommandBuffer(commandBuffers[currentFrame], imageIndex, mesh, descriptorSet);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

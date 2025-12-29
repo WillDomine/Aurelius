@@ -1,12 +1,15 @@
 #include "../include/SwapChainService.h"
+#include "../include/vk_mem_alloc.h"
 #include <stdexcept>
 #include <limits>
 #include <algorithm>
+#include <vector>
 
 SwapChainService::SwapChainService(DeviceService& device, WindowService& window) 
     : deviceService(device), windowService(window) {
     createSwapChain();
     createImageViews();
+    createDepthResources(); // <--- NEW: Create depth buffer at startup
 }
 
 SwapChainService::~SwapChainService() {
@@ -89,6 +92,71 @@ void SwapChainService::createImageViews() {
     }
 }
 
+void SwapChainService::createDepthResources() {
+    VkFormat depthFormat = findDepthFormat();
+    VkExtent2D extent = getSwapChainExtent();
+
+    // 1. Create the Image (Using helper)
+    createImage(extent.width, extent.height, depthFormat, 
+        VK_IMAGE_TILING_OPTIMAL, 
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+        VMA_MEMORY_USAGE_GPU_ONLY, 
+        depthImage, depthImageAllocation);
+
+    // 2. Create the Image View
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = depthImage;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = depthFormat;
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    if (vkCreateImageView(deviceService.device(), &viewInfo, nullptr, &depthImageView) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create depth image view!");
+    }
+}
+
+VkFormat SwapChainService::findDepthFormat() {
+    std::vector<VkFormat> candidates = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+    for (VkFormat format : candidates) {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(deviceService.physicalDevice(), format, &props);
+        
+        if ((props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) == VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
+            return format;
+        }
+    }
+    throw std::runtime_error("Failed to find supported depth format!");
+}
+
+void SwapChainService::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage, VkImage& image, VmaAllocation& allocation) {
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.extent.width = width;
+    imageInfo.extent.height = height;
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.format = format;
+    imageInfo.tiling = tiling;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = usage;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage = memoryUsage;
+
+    if (vmaCreateImage(deviceService.getAllocator(), &imageInfo, &allocInfo, &image, &allocation, nullptr) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to create image!");
+    }
+}
+
 VkResult SwapChainService::acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t* imageIndex) {
     return vkAcquireNextImageKHR(
         deviceService.device(), 
@@ -100,7 +168,6 @@ VkResult SwapChainService::acquireNextImage(VkSemaphore presentCompleteSemaphore
     );
 }
 
-// --- Helpers ---
 VkSurfaceFormatKHR SwapChainService::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
     for (const auto& availableFormat : availableFormats) {
         if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -131,6 +198,11 @@ VkExtent2D SwapChainService::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& ca
 }
 
 void SwapChainService::cleanupSwapChain() {
+    // 1. Destroy Depth Resources (NEW)
+    vkDestroyImageView(deviceService.device(), depthImageView, nullptr);
+    vmaDestroyImage(deviceService.getAllocator(), depthImage, depthImageAllocation);
+
+    // 2. Destroy Color Resources
     for (auto imageView : swapChainImageViews) {
         vkDestroyImageView(deviceService.device(), imageView, nullptr);
     }
@@ -151,4 +223,5 @@ void SwapChainService::recreateSwapChain() {
 
     createSwapChain();
     createImageViews();
+    createDepthResources();
 }

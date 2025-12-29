@@ -18,6 +18,7 @@ public:
     VkRenderPass getRenderPass() { return renderPass; }
     
     VkFramebuffer getFramebuffer(int index) { return swapChainFramebuffers[index]; }
+    VkDescriptorSetLayout getDescriptorSetLayout() { return descriptorSetLayout; }
 
     void recreateFramebuffers();
 
@@ -36,4 +37,7 @@ private:
     VkPipelineLayout pipelineLayout;
     VkPipeline graphicsPipeline;
     std::vector<VkFramebuffer> swapChainFramebuffers;
+
+    VkDescriptorSetLayout descriptorSetLayout;
+    void createDescriptorSetLayout();
 };
