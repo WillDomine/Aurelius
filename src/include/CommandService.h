@@ -14,12 +14,12 @@ public:
     CommandService(const CommandService&) = delete;
     CommandService& operator=(const CommandService&) = delete;
 
-    void drawFrame();
+    void drawFrame(const Mesh& mesh);
 
 private:
     void createCommandBuffers();
     void createSyncObjects();
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh& mesh);
 
     DeviceService& deviceService;
     SwapChainService& swapChainService;

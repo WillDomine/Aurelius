@@ -1,41 +1,7 @@
 #pragma once
 #include "DeviceService.h"
-#include <vulkan/vulkan.h>
-#include <vector>
-#include <array>
-
-//Vertex Data Structure
-struct Vertex {
-    struct Position { float x, y; } pos;
-    struct Color { float r, g, b; } color;
-
-    static VkVertexInputBindingDescription getBindingDescription() {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-
-        // Position
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT; // vec2
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        //Location
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT; // vec3
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        return attributeDescriptions;
-    }
-};
-
+#include "Mesh.h"
+#include "Vertex.h"
 class BufferService {
 public:
     BufferService(DeviceService& deviceService);
@@ -46,19 +12,24 @@ public:
 
     void createVertexBuffer();
     void createIndexBuffer();
+
+    Mesh uploadMesh(const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices);
+
+    void destroyMesh(const Mesh& mesh);
     
     VkBuffer getVertexBuffer() { return vertexBuffer; }
-    VkBuffer getIndexBuffer() { return indexBuffer; } 
+    VkBuffer getIndexBuffer() { return indexBuffer; }
 
 private:
     DeviceService& deviceService;
 
     VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+    VmaAllocation vertexBufferAllocation;
 
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    
+    VkBuffer indexBuffer;
+    VmaAllocation indexBufferAllocation;
+
+    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage, VkBuffer& buffer, VmaAllocation& allocation);    
+
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 };

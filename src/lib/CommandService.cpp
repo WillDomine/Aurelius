@@ -2,25 +2,29 @@
 #include <stdexcept>
 #include <iostream>
 
-CommandService::CommandService(DeviceService& device, SwapChainService& swapChain, PipelineService& pipeline, BufferService& buffer)
-    : deviceService(device), swapChainService(swapChain), pipelineService(pipeline), bufferService(buffer)  {
-    
+CommandService::CommandService(DeviceService &device, SwapChainService &swapChain, PipelineService &pipeline, BufferService &buffer)
+    : deviceService(device), swapChainService(swapChain), pipelineService(pipeline), bufferService(buffer)
+{
+
     createCommandBuffers();
     createSyncObjects();
 }
 
-CommandService::~CommandService() {
+CommandService::~CommandService()
+{
     // Wait for GPU to finish before destroying sync
     vkDeviceWaitIdle(deviceService.device());
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
         vkDestroySemaphore(deviceService.device(), renderFinishedSemaphores[i], nullptr);
         vkDestroySemaphore(deviceService.device(), imageAvailableSemaphores[i], nullptr);
         vkDestroyFence(deviceService.device(), inFlightFences[i], nullptr);
     }
 }
 
-void CommandService::createCommandBuffers() {
+void CommandService::createCommandBuffers()
+{
     commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     VkCommandBufferAllocateInfo allocInfo{};
@@ -29,12 +33,14 @@ void CommandService::createCommandBuffers() {
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
-    if (vkAllocateCommandBuffers(deviceService.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+    if (vkAllocateCommandBuffers(deviceService.device(), &allocInfo, commandBuffers.data()) != VK_SUCCESS)
+    {
         throw std::runtime_error("Failed to allocate command buffers!");
     }
 }
 
-void CommandService::createSyncObjects() {
+void CommandService::createSyncObjects()
+{
     imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
     inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
@@ -46,16 +52,18 @@ void CommandService::createSyncObjects() {
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
         if (vkCreateSemaphore(deviceService.device(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(deviceService.device(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(deviceService.device(), &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS) {
+            vkCreateFence(deviceService.device(), &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS)
+        {
             throw std::runtime_error("Failed to create synchronization objects!");
         }
     }
 }
 
-void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
+void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, const Mesh& mesh) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
@@ -67,7 +75,6 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = pipelineService.getRenderPass();
     renderPassInfo.framebuffer = pipelineService.getFramebuffer(imageIndex);
-    
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapChainService.getSwapChainExtent();
 
@@ -79,12 +86,14 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineService.getPipeline());
 
-        VkBuffer vertexBuffers[] = {bufferService.getVertexBuffer()};
+        VkBuffer vertexBuffers[] = {mesh.vertexBuffer}; 
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-        vkCmdBindIndexBuffer(commandBuffer, bufferService.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(commandBuffer, mesh.indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
+        vkCmdDrawIndexed(commandBuffer, mesh.indexCount, 1, 0, 0, 0); 
+ 
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -99,8 +108,6 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
         scissor.extent = swapChainService.getSwapChainExtent();
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0); 
-
     vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -108,7 +115,8 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
     }
 }
 
-void CommandService::drawFrame() {
+// UPDATE drawFrame TO PASS THE MESH DOWN
+void CommandService::drawFrame(const Mesh& mesh) {
     vkWaitForFences(deviceService.device(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -121,7 +129,8 @@ void CommandService::drawFrame() {
     vkResetFences(deviceService.device(), 1, &inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
-    recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+    
+    recordCommandBuffer(commandBuffers[currentFrame], imageIndex, mesh);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

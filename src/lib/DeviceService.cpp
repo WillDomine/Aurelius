@@ -1,3 +1,4 @@
+#define VMA_IMPLEMENTATION
 #include "../include/DeviceService.h"
 #include <iostream>
 #include <set>
@@ -6,16 +7,20 @@
 #include <cstring>
 
 // Constructor: handling initialization order
-DeviceService::DeviceService(WindowService& window) : windowService(window) {
+DeviceService::DeviceService(WindowService &window) : windowService(window)
+{
     createInstance();
     // Create the surface immediately after instance, before physical device selection
     windowService.createWindowSurface(instance, &surface_);
     pickPhysicalDevice();
     createLogicalDevice();
+    createAllocator();
     createCommandPool();
 }
 
-DeviceService::~DeviceService() {
+DeviceService::~DeviceService()
+{
+    vmaDestroyAllocator(allocator);
     vkDestroyCommandPool(device_, transferCommandPool, nullptr);
     vkDestroyCommandPool(device_, commandPool, nullptr);
     vkDestroyDevice(device_, nullptr);
@@ -23,7 +28,8 @@ DeviceService::~DeviceService() {
     vkDestroyInstance(instance, nullptr);
 }
 
-void DeviceService::createInstance() {
+void DeviceService::createInstance()
+{
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pApplicationName = "AURELIUS";
@@ -33,49 +39,64 @@ void DeviceService::createInstance() {
     appInfo.apiVersion = VK_API_VERSION_1_3; // Requesting Vulkan 1.3 for modern features
 
     uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+    const std::vector<const char *> validationLayers = {
+        "VK_LAYER_KHRONOS_validation"};
 
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
     createInfo.enabledExtensionCount = glfwExtensionCount;
     createInfo.ppEnabledExtensionNames = glfwExtensions;
-    createInfo.enabledLayerCount = 0; // Validation layers can be added here if needed
+    #ifdef NDEBUG
+        createInfo.enabledLayerCount = 0;
+    #else
+        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.ppEnabledLayerNames = validationLayers.data();
+    #endif
 
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+    {
         throw std::runtime_error("Failed to create instance!");
     }
 }
 
-void DeviceService::pickPhysicalDevice() {
+void DeviceService::pickPhysicalDevice()
+{
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
-    if (deviceCount == 0) {
+    if (deviceCount == 0)
+    {
         throw std::runtime_error("Failed to find GPUs with Vulkan support!");
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-    for (const auto& device : devices) {
-        if (isDeviceSuitable(device)) {
+    for (const auto &device : devices)
+    {
+        if (isDeviceSuitable(device))
+        {
             physicalDevice_ = device;
             break;
         }
     }
 
-    if (physicalDevice_ == VK_NULL_HANDLE) {
+    if (physicalDevice_ == VK_NULL_HANDLE)
+    {
         throw std::runtime_error("Failed to find a suitable GPU!");
     }
-    
+
     // Optional: Print what we found
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(physicalDevice_, &deviceProperties);
     std::cout << "Selected GPU: " << deviceProperties.deviceName << std::endl;
 }
 
-void DeviceService::createLogicalDevice() {
+void DeviceService::createLogicalDevice()
+{
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice_);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -83,11 +104,11 @@ void DeviceService::createLogicalDevice() {
         indices.graphicsFamily.value(),
         indices.presentFamily.value(),
         indices.computeFamily.value(),
-        indices.transferFamily.value()
-    };
+        indices.transferFamily.value()};
 
     float queuePriority = 1.0f;
-    for (uint32_t queueFamily : uniqueQueueFamilies) {
+    for (uint32_t queueFamily : uniqueQueueFamilies)
+    {
         VkDeviceQueueCreateInfo queueCreateInfo{};
         queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         queueCreateInfo.queueFamilyIndex = queueFamily;
@@ -95,10 +116,10 @@ void DeviceService::createLogicalDevice() {
         queueCreateInfo.pQueuePriorities = &queuePriority;
         queueCreateInfos.push_back(queueCreateInfo);
     }
-    
-    //Will be used for later integrations
+
+    // Will be used for later integrations
     VkPhysicalDeviceFeatures deviceFeatures{};
-    
+
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
@@ -107,7 +128,8 @@ void DeviceService::createLogicalDevice() {
     createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
     createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-    if (vkCreateDevice(physicalDevice_, &createInfo, nullptr, &device_) != VK_SUCCESS) {
+    if (vkCreateDevice(physicalDevice_, &createInfo, nullptr, &device_) != VK_SUCCESS)
+    {
         throw std::runtime_error("Failed to create logical device!");
     }
 
@@ -115,10 +137,10 @@ void DeviceService::createLogicalDevice() {
     vkGetDeviceQueue(device_, indices.presentFamily.value(), 0, &presentQueue_);
     vkGetDeviceQueue(device_, indices.computeFamily.value(), 0, &computeQueue_);
     vkGetDeviceQueue(device_, indices.transferFamily.value(), 0, &transferQueue_);
-
 }
 
-void DeviceService::createCommandPool() {
+void DeviceService::createCommandPool()
+{
     QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice_);
 
     // 1. Graphics Pool
@@ -127,7 +149,8 @@ void DeviceService::createCommandPool() {
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
-    if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+    if (vkCreateCommandPool(device_, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
+    {
         throw std::runtime_error("Failed to create graphics command pool!");
     }
 
@@ -135,22 +158,25 @@ void DeviceService::createCommandPool() {
     VkCommandPoolCreateInfo transferPoolInfo{};
     transferPoolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     // Transient means "we will record and reset this very often" (optimized for short-lived commands)
-    transferPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT; 
+    transferPoolInfo.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     transferPoolInfo.queueFamilyIndex = queueFamilyIndices.transferFamily.value();
 
-    if (vkCreateCommandPool(device_, &transferPoolInfo, nullptr, &transferCommandPool) != VK_SUCCESS) {
+    if (vkCreateCommandPool(device_, &transferPoolInfo, nullptr, &transferCommandPool) != VK_SUCCESS)
+    {
         throw std::runtime_error("Failed to create transfer command pool!");
     }
 }
 
 // --- Helper Functions ---
 
-bool DeviceService::isDeviceSuitable(VkPhysicalDevice device) {
+bool DeviceService::isDeviceSuitable(VkPhysicalDevice device)
+{
     QueueFamilyIndices indices = findQueueFamilies(device);
     bool extensionsSupported = checkDeviceExtensionSupport(device);
 
     bool swapChainAdequate = false;
-    if (extensionsSupported) {
+    if (extensionsSupported)
+    {
         SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
@@ -158,7 +184,8 @@ bool DeviceService::isDeviceSuitable(VkPhysicalDevice device) {
     return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-bool DeviceService::checkDeviceExtensionSupport(VkPhysicalDevice device) {
+bool DeviceService::checkDeviceExtensionSupport(VkPhysicalDevice device)
+{
     uint32_t extensionCount;
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
@@ -167,14 +194,16 @@ bool DeviceService::checkDeviceExtensionSupport(VkPhysicalDevice device) {
 
     std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-    for (const auto& extension : availableExtensions) {
+    for (const auto &extension : availableExtensions)
+    {
         requiredExtensions.erase(extension.extensionName);
     }
 
     return requiredExtensions.empty();
 }
 
-QueueFamilyIndices DeviceService::findQueueFamilies(VkPhysicalDevice device) {
+QueueFamilyIndices DeviceService::findQueueFamilies(VkPhysicalDevice device)
+{
     QueueFamilyIndices indices;
 
     uint32_t queueFamilyCount = 0;
@@ -184,28 +213,33 @@ QueueFamilyIndices DeviceService::findQueueFamilies(VkPhysicalDevice device) {
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
     int i = 0;
-    for (const auto& queueFamily : queueFamilies) {
+    for (const auto &queueFamily : queueFamilies)
+    {
         // 1. Graphics
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
             indices.graphicsFamily = i;
         }
 
         // 2. Present
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &presentSupport);
-        if (presentSupport) {
+        if (presentSupport)
+        {
             indices.presentFamily = i;
         }
 
         // 3. Dedicated Compute (Prefer one without Graphics bit)
-        if ((queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) && !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+        if ((queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) && !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT))
+        {
             indices.computeFamily = i;
         }
 
         // 4. Dedicated Transfer (Prefer one without Graphics and Compute)
-        if ((queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) && 
-            !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) && 
-            !(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)) {
+        if ((queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) &&
+            !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+            !(queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT))
+        {
             indices.transferFamily = i;
         }
 
@@ -213,18 +247,24 @@ QueueFamilyIndices DeviceService::findQueueFamilies(VkPhysicalDevice device) {
     }
 
     // Fallbacks
-    if (!indices.computeFamily.has_value()) {
-        for (i = 0; i < queueFamilies.size(); i++) {
-            if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
+    if (!indices.computeFamily.has_value())
+    {
+        for (i = 0; i < queueFamilies.size(); i++)
+        {
+            if (queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT)
+            {
                 indices.computeFamily = i;
                 break;
             }
         }
     }
 
-    if (!indices.transferFamily.has_value()) {
-        for (i = 0; i < queueFamilies.size(); i++) {
-            if (queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT) {
+    if (!indices.transferFamily.has_value())
+    {
+        for (i = 0; i < queueFamilies.size(); i++)
+        {
+            if (queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT)
+            {
                 indices.transferFamily = i;
                 break;
             }
@@ -234,14 +274,16 @@ QueueFamilyIndices DeviceService::findQueueFamilies(VkPhysicalDevice device) {
     return indices;
 }
 
-SwapChainSupportDetails DeviceService::querySwapChainSupport(VkPhysicalDevice device) {
+SwapChainSupportDetails DeviceService::querySwapChainSupport(VkPhysicalDevice device)
+{
     SwapChainSupportDetails details;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_, &details.capabilities);
 
     uint32_t formatCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &formatCount, nullptr);
 
-    if (formatCount != 0) {
+    if (formatCount != 0)
+    {
         details.formats.resize(formatCount);
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &formatCount, details.formats.data());
     }
@@ -249,7 +291,8 @@ SwapChainSupportDetails DeviceService::querySwapChainSupport(VkPhysicalDevice de
     uint32_t presentModeCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &presentModeCount, nullptr);
 
-    if (presentModeCount != 0) {
+    if (presentModeCount != 0)
+    {
         details.presentModes.resize(presentModeCount);
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &presentModeCount, details.presentModes.data());
     }
@@ -257,20 +300,8 @@ SwapChainSupportDetails DeviceService::querySwapChainSupport(VkPhysicalDevice de
     return details;
 }
 
-uint32_t DeviceService::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice_, &memProperties);
-
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            return i;
-        }
-    }
-
-    throw std::runtime_error("Failed to find suitable memory type!");
-}
-
-VkCommandBuffer DeviceService::beginSingleTimeCommands() {
+VkCommandBuffer DeviceService::beginSingleTimeCommands()
+{
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -288,7 +319,8 @@ VkCommandBuffer DeviceService::beginSingleTimeCommands() {
     return commandBuffer;
 }
 
-void DeviceService::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void DeviceService::endSingleTimeCommands(VkCommandBuffer commandBuffer)
+{
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -302,17 +334,18 @@ void DeviceService::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
     vkFreeCommandBuffers(device_, commandPool, 1, &commandBuffer);
 }
 
-void DeviceService::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+void DeviceService::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+{
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice_);
     uint32_t graphicsFamily = indices.graphicsFamily.value();
     uint32_t transferFamily = indices.transferFamily.value();
 
     // --- STEP 1: The Transfer Command (Release) ---
-    
+
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandPool = transferCommandPool; 
+    allocInfo.commandPool = transferCommandPool;
     allocInfo.commandBufferCount = 1;
 
     VkCommandBuffer commandBuffer;
@@ -336,7 +369,8 @@ void DeviceService::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
     barrier.buffer = dstBuffer;
     barrier.offset = 0;
 
-    if (graphicsFamily != transferFamily) {
+    if (graphicsFamily != transferFamily)
+    {
         // CASE A: Separate Queues (Ownership Transfer - RELEASE)
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
         barrier.dstAccessMask = 0; // Ignored during release
@@ -350,9 +384,10 @@ void DeviceService::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
             0,
             0, nullptr,
             1, &barrier,
-            0, nullptr
-        );
-    } else {
+            0, nullptr);
+    }
+    else
+    {
         // CASE B: Same Queue (Just a Visibility Barrier)
         // Even if queues are same, we must ensure Write completes before Read
         barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -367,8 +402,7 @@ void DeviceService::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
             0,
             0, nullptr,
             1, &barrier,
-            0, nullptr
-        );
+            0, nullptr);
     }
 
     vkEndCommandBuffer(commandBuffer);
@@ -384,8 +418,9 @@ void DeviceService::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
     vkFreeCommandBuffers(device_, transferCommandPool, 1, &commandBuffer);
 
     // --- STEP 2: The Graphics Command (Acquire) - ONLY if queues are different ---
-    
-    if (graphicsFamily != transferFamily) {
+
+    if (graphicsFamily != transferFamily)
+    {
         VkCommandBufferAllocateInfo allocInfoGraphics{};
         allocInfoGraphics.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfoGraphics.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -413,8 +448,7 @@ void DeviceService::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
             0,
             0, nullptr,
             1, &barrier,
-            0, nullptr
-        );
+            0, nullptr);
 
         vkEndCommandBuffer(graphicsCmd);
 
@@ -426,5 +460,19 @@ void DeviceService::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceS
         vkQueueSubmit(graphicsQueue_, 1, &submitInfoGraphics, VK_NULL_HANDLE);
         vkQueueWaitIdle(graphicsQueue_);
         vkFreeCommandBuffers(device_, commandPool, 1, &graphicsCmd);
+    }
+}
+
+void DeviceService::createAllocator()
+{
+    VmaAllocatorCreateInfo allocInfo = {};
+    allocInfo.physicalDevice = physicalDevice_;
+    allocInfo.device = device_;
+    allocInfo.instance = instance;
+    allocInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+
+    if (vmaCreateAllocator(&allocInfo, &allocator) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create VMA allocator");
     }
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "WindowService.h"
+#include "vk_mem_alloc.h"
 #include <vulkan/vulkan.h>
 #include <vector>
 #include <optional>
@@ -43,18 +44,20 @@ class DeviceService {
 
         SwapChainSupportDetails getSwapChainSupport() { return querySwapChainSupport(physicalDevice_); }
         QueueFamilyIndices findPhysicalQueueFamilies() { return findQueueFamilies(physicalDevice_); }
-        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
         
         VkCommandBuffer beginSingleTimeCommands();
         void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
         void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
+        VmaAllocator getAllocator() { return allocator; }
+
     private:
         void createInstance();
         void pickPhysicalDevice();
         void createLogicalDevice();
         void createCommandPool();
+        void createAllocator();
 
         bool isDeviceSuitable(VkPhysicalDevice device);
         QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
@@ -74,6 +77,9 @@ class DeviceService {
         VkQueue presentQueue_;
         VkQueue computeQueue_;
         VkQueue transferQueue_;
+
+        VmaAllocator allocator;
+
 
         const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 };

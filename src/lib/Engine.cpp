@@ -3,6 +3,17 @@
 #include <iomanip> 
 
 void Engine::run() {
+
+    std::vector<Vertex> vertices = {
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{ 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{ 0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{-0.5f,  0.5f}, {1.0f, 1.0f, 1.0f}}
+    };
+    std::vector<uint16_t> indices = {0, 1, 2, 2, 3, 0};
+
+    squareMesh = bufferService.uploadMesh(vertices, indices);
+
     std::cout << "---------------------------------" << std::endl;
     std::cout << "   AURELIUS ENGINE INITIALIZED   " << std::endl;
     std::cout << "---------------------------------" << std::endl;
@@ -16,7 +27,7 @@ void Engine::run() {
         glfwPollEvents();
 
         //Draw the Frame using the Command Service
-        commandService.drawFrame();
+        commandService.drawFrame(squareMesh);
 
         // 3. FPS Counter Logic
         double currentTime = glfwGetTime();
@@ -32,6 +43,8 @@ void Engine::run() {
 
     // Wait for the GPU to finish the last frame before we kill the services
     vkDeviceWaitIdle(deviceService.device());
+
+    bufferService.destroyMesh(squareMesh);
 
     std::cout << "\n\nSHUTTING DOWN..." << std::endl;
 }

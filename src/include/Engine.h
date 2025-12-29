@@ -14,6 +14,8 @@ public:
     void run();
 
 private: 
+
+    Mesh squareMesh;
     // Create the Window
     WindowService windowService{WIDTH, HEIGHT, "AURELIUS ENGINE"};
     // Initialize Vulkan Device (needs Window)
