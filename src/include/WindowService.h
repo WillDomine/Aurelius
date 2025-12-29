@@ -13,6 +13,9 @@ class WindowService {
 
         bool shouldClose() {return glfwWindowShouldClose(window); };
 
+        bool wasWindowResized() { return framebufferResized; }
+        void resetWindowResizedFlag() { framebufferResized = false; }
+
         VkExtent2D getExtent() { return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)}; };
 
         void createWindowSurface(VkInstance instance, VkSurfaceKHR* surface);
@@ -22,6 +25,9 @@ class WindowService {
 private:
     private:
         void initWindow();
+
+        bool framebufferResized = false;
+        static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
         int width;
         int height;

@@ -21,6 +21,9 @@ public:
     // Check if the swap chain is compatible with the window
     VkResult acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t* imageIndex);
 
+    void recreateSwapChain();
+    void cleanupSwapChain();
+
 private:
     void createSwapChain();
     void createImageViews();

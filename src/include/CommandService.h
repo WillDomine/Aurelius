@@ -14,7 +14,7 @@ public:
     CommandService(const CommandService&) = delete;
     CommandService& operator=(const CommandService&) = delete;
 
-    void drawFrame(const Mesh& mesh);
+    VkResult drawFrame(const Mesh& mesh);
 
 private:
     void createCommandBuffers();

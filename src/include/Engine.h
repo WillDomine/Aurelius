@@ -14,7 +14,9 @@ public:
     void run();
 
 private: 
-
+    //Recreate swap chain on window resize
+    void recreateSwapChain();
+    //Testing mesh
     Mesh squareMesh;
     // Create the Window
     WindowService windowService{WIDTH, HEIGHT, "AURELIUS ENGINE"};

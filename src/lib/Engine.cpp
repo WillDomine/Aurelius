@@ -27,8 +27,13 @@ void Engine::run() {
         glfwPollEvents();
 
         //Draw the Frame using the Command Service
-        commandService.drawFrame(squareMesh);
+        VkResult result = commandService.drawFrame(squareMesh);
 
+        if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || windowService.wasWindowResized()) {
+            windowService.resetWindowResizedFlag();
+            recreateSwapChain();
+        }
+        
         // 3. FPS Counter Logic
         double currentTime = glfwGetTime();
         nbFrames++;
@@ -47,4 +52,10 @@ void Engine::run() {
     bufferService.destroyMesh(squareMesh);
 
     std::cout << "\n\nSHUTTING DOWN..." << std::endl;
+}
+
+void Engine::recreateSwapChain() {
+    swapChainService.recreateSwapChain();
+
+    pipelineService.recreateFramebuffers();
 }

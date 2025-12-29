@@ -10,10 +10,7 @@ SwapChainService::SwapChainService(DeviceService& device, WindowService& window)
 }
 
 SwapChainService::~SwapChainService() {
-    for (auto imageView : swapChainImageViews) {
-        vkDestroyImageView(deviceService.device(), imageView, nullptr);
-    }
-    vkDestroySwapchainKHR(deviceService.device(), swapChain, nullptr);
+    cleanupSwapChain();
 }
 
 void SwapChainService::createSwapChain() {
@@ -131,4 +128,27 @@ VkExtent2D SwapChainService::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& ca
         actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
         return actualExtent;
     }
+}
+
+void SwapChainService::cleanupSwapChain() {
+    for (auto imageView : swapChainImageViews) {
+        vkDestroyImageView(deviceService.device(), imageView, nullptr);
+    }
+    vkDestroySwapchainKHR(deviceService.device(), swapChain, nullptr);
+}
+
+void SwapChainService::recreateSwapChain() {
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(windowService.getGLFWwindow(), &width, &height);
+    while (width == 0 || height == 0) {
+        glfwGetFramebufferSize(windowService.getGLFWwindow(), &width, &height);
+        glfwWaitEvents();
+    }
+
+    vkDeviceWaitIdle(deviceService.device());
+
+    cleanupSwapChain();
+
+    createSwapChain();
+    createImageViews();
 }

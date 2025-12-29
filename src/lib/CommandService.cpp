@@ -115,17 +115,22 @@ void CommandService::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t
     }
 }
 
-// UPDATE drawFrame TO PASS THE MESH DOWN
-void CommandService::drawFrame(const Mesh& mesh) {
+VkResult CommandService::drawFrame(const Mesh& mesh) {
     vkWaitForFences(deviceService.device(), 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
     VkResult result = swapChainService.acquireNextImage(imageAvailableSemaphores[currentFrame], &imageIndex);
 
+    // Check if window was resized before we start drawing
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        return result;
+    }
+
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("Failed to acquire swap chain image!");
     }
 
+    // Only reset fence if we are actually going to submit work
     vkResetFences(deviceService.device(), 1, &inFlightFences[currentFrame]);
 
     vkResetCommandBuffer(commandBuffers[currentFrame], 0);
@@ -157,12 +162,22 @@ void CommandService::drawFrame(const Mesh& mesh) {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
+    // IMPORTANT: Point to the swapchain and image index
     VkSwapchainKHR swapChains[] = {swapChainService.getSwapChain()};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
 
-    vkQueuePresentKHR(deviceService.presentQueue(), &presentInfo);
+    result = vkQueuePresentKHR(deviceService.presentQueue(), &presentInfo);
+
+    // Check if window was resized during the frame
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+        return result; 
+    } else if (result != VK_SUCCESS) {
+        throw std::runtime_error("failed to present swap chain image!");
+    }
 
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    
+    return VK_SUCCESS;
 }
